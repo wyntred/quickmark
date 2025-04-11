@@ -214,7 +214,7 @@ def install_shell_function():
             f.write('\n')  # Add a newline for cleanliness
             f.write(shell_function)
 
-        print(f"Shell function installed in {config_file}")
+        print(f"Shell function instalcdled in {config_file}")
         print(f"Please restart your shell or run 'source {config_file}' to activate it.")
         return True
 
