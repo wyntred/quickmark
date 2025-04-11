@@ -11,12 +11,10 @@ A simple tool for bookmarking frequently visited directories. Provides an explic
 
 ## Installation
 
-### Option 1: Install from source
+### Option 1: Install via pip (recommended)
 
 ```bash
-git clone https://github.com/yourusername/quickmark.git
-cd quickmark
-pip install -e .
+pip install git+https://github.com/yourusername/quickmark.git
 quickmark install
 ```
 
@@ -24,8 +22,7 @@ quickmark install
 
 1. Download the `quickmark.py` script
 2. Make it executable: `chmod +x quickmark.py`
-3. Place it somewhere in your PATH (e.g., `/usr/local/bin/quickmark`)
-4. Install the shell function: `quickmark install`
+3. Run: `./quickmark.py install`
 
 ## Usage
 
@@ -56,6 +53,12 @@ qm list
 
 ```bash
 qm delete proj
+```
+
+### Getting help
+
+```bash
+qm help
 ```
 
 ## License

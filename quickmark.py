@@ -9,12 +9,15 @@ import os
 import sys
 import argparse
 import json
+import shutil
 from pathlib import Path
 
 # Define the path for the bookmarks file
 BOOKMARKS_FILE = os.path.expanduser("~/.quickmark_bookmarks.json")
 # Define the script name as it would be installed
 SCRIPT_NAME = os.path.basename(__file__)
+# Define the installation path
+INSTALL_PATH = os.path.expanduser("~/.local/bin/quickmark")
 
 
 def load_bookmarks():
@@ -100,29 +103,30 @@ def get_bookmark_path(name):
 
 def get_shell_function():
     """Return the shell function text."""
-    return f"""
+    # Use 'quickmark' instead of SCRIPT_NAME for the installed version
+    return """
 # quickmark shell function
-qm() {{
+qm() {
     # First check if it's a command
     case "$1" in
-        add|delete|list|install|shell-function)
-            {SCRIPT_NAME} "$@"
+        add|delete|list|install|shell-function|help)
+            quickmark "$@"
             ;;
         # If not a known command, treat the first argument as a bookmark name
         *)
             if [ -z "$1" ]; then
                 # No arguments, show help
-                {SCRIPT_NAME}
+                quickmark help
             else
                 # Try to navigate to the bookmark
-                local target_dir=$({SCRIPT_NAME} go "$1")
+                local target_dir=$(quickmark go "$1")
                 if [ $? -eq 0 ] && [ -n "$target_dir" ]; then
                     cd "$target_dir"
                 fi
             fi
             ;;
     esac
-}}
+}
 """
 
 
@@ -132,9 +136,59 @@ def print_shell_function():
     print("\nAdd the above function to your ~/.bashrc or ~/.zshrc file.")
 
 
+def print_help():
+    """Print help information about quickmark."""
+    help_text = """
+quickmark - A simple directory bookmarking tool
+
+USAGE:
+  qm add <name> [<path>]     Add a bookmark (defaults to current directory)
+  qm <name>                  Navigate to a bookmarked directory
+  qm delete <name>           Delete a bookmark
+  qm list                    List all bookmarks
+  qm help                    Show this help message
+  qm install                 Install the shell function and script
+
+EXAMPLES:
+  qm add work                Bookmark current directory as "work"
+  qm add proj ~/projects     Bookmark ~/projects as "proj"
+  qm proj                    Navigate to the "proj" bookmark
+  qm list                    Show all bookmarks
+  qm delete work             Delete the "work" bookmark
+
+For more information, visit: https://github.com/yourusername/quickmark
+"""
+    print(help_text)
+
+
+def install_script():
+    """Install the script to the user's PATH."""
+    # Create the directory if it doesn't exist
+    os.makedirs(os.path.dirname(INSTALL_PATH), exist_ok=True)
+
+    # Get the current script path
+    current_script = os.path.abspath(__file__)
+
+    try:
+        # Copy the script to the installation path
+        shutil.copy2(current_script, INSTALL_PATH)
+        os.chmod(INSTALL_PATH, 0o755)  # Make it executable
+        print(f"Script installed to {INSTALL_PATH}")
+        return True
+    except Exception as e:
+        print(f"Error installing script: {e}")
+        return False
+
+
 def install_shell_function():
     """Install the shell function to the user's shell config file."""
     shell_function = get_shell_function()
+
+    # Install the script first
+    if not os.path.exists(INSTALL_PATH) or not os.access(INSTALL_PATH, os.X_OK):
+        if not install_script():
+            print("Failed to install the script. Cannot continue with shell function installation.")
+            return False
 
     # Determine which shell the user is using
     shell = os.environ.get('SHELL', '')
@@ -171,6 +225,24 @@ def install_shell_function():
         return False
 
 
+def ensure_path():
+    """Check if ~/.local/bin is in PATH and suggest adding it if not."""
+    user_bin_dir = os.path.dirname(INSTALL_PATH)
+    path_env = os.environ.get('PATH', '')
+
+    if user_bin_dir not in path_env.split(os.pathsep):
+        shell = os.environ.get('SHELL', '')
+        if 'zsh' in shell:
+            config_file = '~/.zshrc'
+        else:
+            config_file = '~/.bashrc'
+
+        print(f"\nWARNING: {user_bin_dir} is not in your PATH.")
+        print(f"Add the following line to your {config_file}:")
+        print(f"export PATH=\"$PATH:{user_bin_dir}\"")
+        print("Then run: source " + os.path.expanduser(config_file))
+
+
 def main():
     """Main function for the quickmark tool."""
     parser = argparse.ArgumentParser(description='Quickly bookmark and navigate to directories.')
@@ -199,6 +271,9 @@ def main():
     # Install command
     subparsers.add_parser('install', help='Install the shell function to your shell config file')
 
+    # Help command
+    subparsers.add_parser('help', help='Show detailed help information')
+
     args = parser.parse_args()
 
     if args.command == 'add':
@@ -213,8 +288,11 @@ def main():
         print_shell_function()
     elif args.command == 'install':
         install_shell_function()
+        ensure_path()
+    elif args.command == 'help':
+        print_help()
     else:
-        parser.print_help()
+        print_help()
 
 
 if __name__ == "__main__":
