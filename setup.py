@@ -13,7 +13,7 @@ setup(
     name="quickmark",
     version="0.1.0",
     description="A simple directory bookmarking tool",
-    author="wyntred ",
+    author="wyntred",
     author_email="wyntred13@gmail.com",
     py_modules=["quickmark"],
     entry_points={
